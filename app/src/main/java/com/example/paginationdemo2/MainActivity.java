@@ -1,8 +1,6 @@
 package com.example.paginationdemo2;
-
 import android.os.Bundle;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -20,6 +18,37 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<Result> arrayList;
     private static final int pageSize = 50;
     private int currentPage = 0;
+    private Response<List<Result>> result ;
+
+    public void onResponse(Call<List<Result>> call, Response<List<Result>> response) {
+        if(isScrollable()){
+            int startPosition = currentPage * pageSize;
+            for (int i = startPosition; i < startPosition + pageSize; i++) {
+                //response.body().getId();
+                Result result = new Result();
+                result.setId(response.body().get(i).getId());
+                result.setAlbumId(response.body().get(i).getAlbumId());
+                result.setTitle(response.body().get(i).getTitle());
+                result.setUrl(response.body().get(i).getUrl());
+                result.setThumbnailUrl(response.body().get(i).getThumbnailUrl());
+                arrayList.add(result);
+            }
+            currentPage++;
+
+            LinearLayoutManager linearLayoutManager = new LinearLayoutManager(MainActivity.this);
+            rv.setLayoutManager(linearLayoutManager);
+
+        }
+    }
+
+    public boolean isScrollable(){
+        RvAdapter rvAdapter = new RvAdapter(MainActivity.this, arrayList);
+        rv.setAdapter(rvAdapter);
+        return rvAdapter.getItemCount() > currentPage * pageSize;
+    }
+    APIInterface apiInterface = APPClient.getclient().create(APIInterface.class);
+    Call<List<Result>> call = apiInterface.getdata();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,58 +59,22 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
-                onResponse();
+                onResponse(call,result);
             }
         });
         arrayList = new ArrayList<>();
-        APIInterface apiInterface = APPClient.getclient().create(APIInterface.class);
-        Call<List<Result>> call = apiInterface.getdata();
-
         call.enqueue(new Callback<List<Result>>() {
-
-            public boolean isScrollable(){
-                RvAdapter rvAdapter = new RvAdapter(MainActivity.this, arrayList);
-                rv.setAdapter(rvAdapter);
-                return rvAdapter.getItemCount() > currentPage * pageSize;
+            @Override
+            public void onResponse(Call<List<Result>> call, Response<List<Result>> response) {
+                result= response;
             }
-
-
-
-
-             public void onResponse(Call<List<Result>> call, Response<List<Result>> response) {
-                if(isScrollable()){
-                int startPosition = currentPage * pageSize;
-                for (int i = startPosition; i < startPosition + pageSize; i++) {
-                    //response.body().getId();
-                    Result result = new Result();
-                    result.setId(response.body().get(i).getId());
-                    result.setAlbumId(response.body().get(i).getAlbumId());
-                    result.setTitle(response.body().get(i).getTitle());
-                    result.setUrl(response.body().get(i).getUrl());
-                    result.setThumbnailUrl(response.body().get(i).getThumbnailUrl());
-                    arrayList.add(result);
-
-                }
-                currentPage++;
-
-                LinearLayoutManager linearLayoutManager = new LinearLayoutManager(MainActivity.this);
-                rv.setLayoutManager(linearLayoutManager);
-
-            }
-
-
-
-
-
-
-
-        }
 
             @Override
             public void onFailure(Call<List<Result>> call, Throwable t) {
-
             }
 
         });
+
+
     }
 }
